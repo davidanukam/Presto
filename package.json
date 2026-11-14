@@ -1,0 +1,17 @@
+{
+  "name": "presto",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @presto/web dev",
+    "build": "pnpm --filter @presto/web build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p apps/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "@types/node": "^24.3.0"
+  }
+}

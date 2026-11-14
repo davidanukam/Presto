@@ -1,0 +1,18 @@
+title("Marked")
+tempo(84)
+time("4/4")
+key("C")
+clef("treble")
+
+notes("""
+mf c4 d4 e4 f4 |
+staccato g4 a4 b4 c5 |
+""")
+crescendo()
+notes("""
+d5 c5 b4 a4 |
+""")
+dynamic("f")
+notes("""
+g4 "day" c5/2 r/4 |
+""")

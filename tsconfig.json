@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@presto/score": ["packages/score/src/index.ts"],
+      "@presto/mini": ["packages/mini/src/index.ts"],
+      "@presto/language": ["packages/language/src/index.ts"],
+      "@presto/musicxml": ["packages/musicxml/src/index.ts"],
+      "@presto/playback": ["packages/playback/src/index.ts"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

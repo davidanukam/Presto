@@ -1,0 +1,10 @@
+{
+  "identifier": "default",
+  "description": "Presto can open and save scores.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "fs:default"
+  ]
+}

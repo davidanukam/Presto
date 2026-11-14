@@ -1,0 +1,24 @@
+title("Motif")
+tempo(120)
+time("4/4")
+key("C")
+clef("treble")
+
+def motif():
+    return "c4 d4 e4 f4 |"
+
+notes(motif())
+notes(motif())
+
+repeat(2):
+    notes("""
+    g4 a4 b4 c5 |
+    """)
+    ending(1):
+        notes("""
+        e5 d5 c5 b4 |
+        """)
+    ending(2):
+        notes("""
+        c5/1 |
+        """)

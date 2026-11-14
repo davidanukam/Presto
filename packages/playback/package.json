@@ -1,0 +1,13 @@
+{
+  "name": "@presto/playback",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@presto/score": "workspace:*",
+    "smplr": "^0.16.3"
+  }
+}

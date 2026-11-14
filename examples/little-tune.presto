@@ -1,0 +1,13 @@
+title("Little Tune")
+tempo(96)
+time("4/4")
+key("G")
+clef("treble")
+pickup("1/4")
+
+notes("""
+d4 |
+g4~ g4 a4 b4 |
+<b4 d5 g5>/2 g4/2 |
+(3 a4/4 b4 c5) d5/2 |
+""")

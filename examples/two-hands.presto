@@ -1,0 +1,14 @@
+title("Two Hands")
+tempo(72)
+time("3/4")
+key("C")
+
+with part("Piano", staves=2, sound="piano"):
+    staff(1).clef("treble")
+    staff(2).clef("bass")
+    staff(1).notes("""
+    e4 g4 c5 |
+    """)
+    staff(2).notes("""
+    c3 e3 g3 |
+    """)

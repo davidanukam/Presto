@@ -1,8 +1,17 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { StreamLanguage, syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { StreamLanguage, bracketMatching, syntaxHighlighting, HighlightStyle } from "@codemirror/language";
 import { linter, forceLinting, type Diagnostic } from "@codemirror/lint";
 import { EditorState, StateEffect, StateField, type Extension } from "@codemirror/state";
-import { Decoration, EditorView, hoverTooltip, keymap, lineNumbers, type DecorationSet } from "@codemirror/view";
+import {
+  Decoration,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  hoverTooltip,
+  keymap,
+  lineNumbers,
+  type DecorationSet,
+} from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { CompileError } from "@presto/language";
@@ -10,6 +19,8 @@ import type { SourceSpan } from "@presto/score";
 
 export type EditorHandle = {
   showSpan: (span: SourceSpan) => void;
+  focus: () => void;
+  hasFocus: () => boolean;
 };
 
 const setPlayed = StateEffect.define<SourceSpan[]>();
@@ -58,12 +69,13 @@ const prestoLanguage = StreamLanguage.define({
   },
 });
 
+/** Catppuccin Mocha syntax colors */
 const highlight = HighlightStyle.define([
-  { tag: tags.keyword, color: "#c4552a" },
-  { tag: tags.comment, color: "#8a7b68", fontStyle: "italic" },
-  { tag: tags.string, color: "#2f6f4e" },
-  { tag: tags.number, color: "#8a5a12" },
-  { tag: tags.variableName, color: "#243044" },
+  { tag: tags.keyword, color: "#cba6f7", fontStyle: "italic" },
+  { tag: tags.comment, color: "#6c7086", fontStyle: "italic" },
+  { tag: tags.string, color: "#a6e3a1" },
+  { tag: tags.number, color: "#fab387" },
+  { tag: tags.variableName, color: "#cdd6f4" },
 ]);
 
 type Props = {
@@ -71,11 +83,13 @@ type Props = {
   errors: CompileError[];
   help: Record<string, string>;
   played: SourceSpan[];
+  fontSize: number;
   onChange: (source: string) => void;
+  onFocusChange?: (focused: boolean) => void;
 };
 
 export const PrestoEditor = forwardRef<EditorHandle, Props>(function PrestoEditor(
-  { source, errors, help, played, onChange },
+  { source, errors, help, played, fontSize, onChange, onFocusChange },
   ref,
 ) {
   const host = useRef<HTMLDivElement>(null);
@@ -83,9 +97,11 @@ export const PrestoEditor = forwardRef<EditorHandle, Props>(function PrestoEdito
   const onChangeRef = useRef(onChange);
   const errorsRef = useRef(errors);
   const helpRef = useRef(help);
+  const onFocusChangeRef = useRef(onFocusChange);
   onChangeRef.current = onChange;
   errorsRef.current = errors;
   helpRef.current = help;
+  onFocusChangeRef.current = onFocusChange;
 
   useImperativeHandle(ref, () => ({
     showSpan(span) {
@@ -97,12 +113,21 @@ export const PrestoEditor = forwardRef<EditorHandle, Props>(function PrestoEdito
       });
       view.focus();
     },
+    focus() {
+      viewRef.current?.focus();
+    },
+    hasFocus() {
+      return viewRef.current?.hasFocus ?? false;
+    },
   }));
 
   useEffect(() => {
     if (!host.current) return;
     const extensions: Extension[] = [
       lineNumbers(),
+      highlightActiveLine(),
+      highlightActiveLineGutter(),
+      bracketMatching(),
       history(),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       prestoLanguage,
@@ -111,6 +136,7 @@ export const PrestoEditor = forwardRef<EditorHandle, Props>(function PrestoEdito
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onChangeRef.current(update.state.doc.toString());
+        if (update.focusChanged) onFocusChangeRef.current?.(update.view.hasFocus);
       }),
       hoverTooltip((view, pos) => {
         const word = view.state.wordAt(pos);
@@ -170,6 +196,10 @@ export const PrestoEditor = forwardRef<EditorHandle, Props>(function PrestoEdito
   useEffect(() => {
     viewRef.current?.dispatch({ effects: setPlayed.of(played) });
   }, [played]);
+
+  useEffect(() => {
+    if (host.current) host.current.style.setProperty("--editor-font-size", `${fontSize}px`);
+  }, [fontSize]);
 
   return <div className="editor-host" ref={host} />;
 });

@@ -51,20 +51,26 @@ export class Player {
     return this.playing && !this.paused;
   }
 
-  async play(timeline: Timeline, mixer: Mixer, rate: number, listener: PlayListener): Promise<void> {
-    this.stop();
+  async play(
+    timeline: Timeline,
+    mixer: Mixer,
+    rate: number,
+    listener: PlayListener,
+    fromSeconds = 0,
+  ): Promise<void> {
+    this.halt();
     const ctx = this.context();
     if (ctx.state === "suspended") await ctx.resume();
     this.timeline = timeline;
     this.mixer = mixer;
     this.rate = rate;
     this.listener = listener;
-    this.offset = 0;
+    this.offset = Math.max(0, Math.min(fromSeconds, timeline.durationSeconds));
     await this.prepare(timeline);
-    this.anchor = ctx.currentTime + 0.06;
+    this.anchor = ctx.currentTime + 0.06 - this.offset / this.rate;
     this.playing = true;
     this.paused = false;
-    this.schedule(0);
+    this.schedule(this.offset);
     this.follow();
   }
 
@@ -84,13 +90,53 @@ export class Player {
     this.follow();
   }
 
+  /** Current playback or pause position in seconds. */
+  get position(): number {
+    if (!this.ctx || !this.timeline) return this.offset;
+    if (this.playing && !this.paused) {
+      return Math.max(0, (this.ctx.currentTime - this.anchor) * this.rate);
+    }
+    return this.offset;
+  }
+
+  get isPaused(): boolean {
+    return this.playing && this.paused;
+  }
+
+  /** Move the cue point without starting playback. */
+  cue(seconds: number): void {
+    if (!this.timeline) {
+      this.offset = Math.max(0, seconds);
+      return;
+    }
+    this.offset = Math.max(0, Math.min(seconds, this.timeline.durationSeconds));
+    if (this.playing && !this.paused && this.ctx) {
+      this.silence();
+      this.anchor = this.ctx.currentTime - this.offset / this.rate;
+      this.schedule(this.offset);
+    }
+    const spans = this.spansAt(this.offset);
+    this.listener(this.offset, spans);
+  }
+
   stop(): void {
+    this.halt();
+    this.listener(0, []);
+  }
+
+  private halt(): void {
     this.silence();
     this.playing = false;
     this.paused = false;
     this.offset = 0;
     cancelAnimationFrame(this.timer);
-    this.listener(0, []);
+  }
+
+  private spansAt(seconds: number): SourceSpan[] {
+    if (!this.timeline) return [];
+    return this.timeline.events
+      .filter((event) => event.span && seconds >= event.startSeconds && seconds < event.startSeconds + event.durationSeconds)
+      .map((event) => event.span!);
   }
 
   setMixer(mixer: Mixer): void {
@@ -262,10 +308,7 @@ export class Player {
         this.stop();
         return;
       }
-      const spans = this.timeline.events
-        .filter((event) => event.span && seconds >= event.startSeconds && seconds < event.startSeconds + event.durationSeconds)
-        .map((event) => event.span!);
-      this.listener(Math.max(0, seconds), spans);
+      this.listener(Math.max(0, seconds), this.spansAt(seconds));
       this.timer = requestAnimationFrame(tick);
     };
     this.timer = requestAnimationFrame(tick);

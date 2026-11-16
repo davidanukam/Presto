@@ -7,7 +7,7 @@ type Props = {
   printing: boolean;
   seconds: number | null;
   timeline: Timeline | null;
-  onPick: (span: SourceSpan) => void;
+  onPick: (span: SourceSpan, atSeconds: number | null) => void;
 };
 
 export function ScoreView({ musicxml, layout, printing, seconds, timeline, onPick }: Props) {
@@ -15,7 +15,9 @@ export function ScoreView({ musicxml, layout, printing, seconds, timeline, onPic
   const osmdRef = useRef<OsmdLike | null>(null);
   const cursorAt = useRef(0);
   const onPickRef = useRef(onPick);
+  const timelineRef = useRef(timeline);
   onPickRef.current = onPick;
+  timelineRef.current = timeline;
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +69,9 @@ export function ScoreView({ musicxml, layout, printing, seconds, timeline, onPic
     if (!node) return;
     const onClick = (event: MouseEvent) => {
       const span = nearestSpan(node, event.clientX, event.clientY);
-      if (span) onPickRef.current(span);
+      if (!span) return;
+      const at = secondsForSpan(timelineRef.current, span);
+      onPickRef.current(span, at);
     };
     node.addEventListener("click", onClick);
     return () => node.removeEventListener("click", onClick);
@@ -111,6 +115,19 @@ function uniqueStarts(timeline: Timeline): number[] {
     if (last === undefined || Math.abs(last - event.startSeconds) > 0.0001) starts.push(event.startSeconds);
   }
   return starts;
+}
+
+function secondsForSpan(timeline: Timeline | null, span: SourceSpan): number | null {
+  if (!timeline) return null;
+  let best: { startSeconds: number; score: number } | null = null;
+  for (const event of timeline.events) {
+    if (!event.span) continue;
+    const overlap = Math.min(event.span.end, span.end) - Math.max(event.span.start, span.start);
+    if (overlap <= 0) continue;
+    const score = overlap - Math.abs(event.span.start - span.start) * 0.01;
+    if (!best || score > best.score) best = { startSeconds: event.startSeconds, score };
+  }
+  return best?.startSeconds ?? null;
 }
 
 function nearestSpan(host: HTMLElement, x: number, y: number): SourceSpan | null {
